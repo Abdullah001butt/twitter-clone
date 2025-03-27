@@ -2,19 +2,51 @@ import { CiImageOn } from "react-icons/ci";
 import { BsEmojiSmileFill } from "react-icons/bs";
 import { useRef, useState } from "react";
 import { IoCloseSharp } from "react-icons/io5";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
 const CreatePost = () => {
   const [text, setText] = useState("");
   const [img, setImg] = useState(null);
   const imgRef = useRef(null);
-  const isPending = false;
-  const data = {
-    profileImg: "/avatars/boy1.png",
-  };
+  const { data: authUser } = useQuery({ queryKey: ["authUser"] });
+  const queryClient = useQueryClient();
+
+  const {
+    mutate: createPost,
+    isPending,
+    isError,
+    error,
+  } = useMutation({
+    mutationFn: async ({ text, img }) => {
+      try {
+        const res = await fetch("/api/posts/create", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text, img }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || data.message || "Something went wrong");
+        }
+        return data;
+      } catch (error) {
+        throw new Error(error);
+      }
+    },
+    onSuccess: () => {
+      setText("");
+      setImg(null);
+      toast.success("Post created successfully");
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+  });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert("Post created successfully");
+    createPost({ text, img });
   };
 
   const handleImgChange = (e) => {
@@ -32,8 +64,8 @@ const CreatePost = () => {
     <div className="flex p-6 items-start gap-4 transition-all duration-300">
       <div className="avatar">
         <div className="w-12 h-12 rounded-full ring-2 ring-blue-500/30 ring-offset-2 ring-offset-black">
-          <img 
-            src={data.profileImg || "/avatar-placeholder.png"} 
+          <img
+            src={authUser.profileImg || "/avatar-placeholder.png"}
             alt="profile"
             className="object-cover"
           />
@@ -59,9 +91,9 @@ const CreatePost = () => {
             >
               <IoCloseSharp className="w-5 h-5 text-white" />
             </button>
-            <img 
-              src={img} 
-              className="w-full rounded-2xl shadow-lg border border-gray-700/50" 
+            <img
+              src={img}
+              className="w-full rounded-2xl shadow-lg border border-gray-700/50"
               alt="preview"
             />
           </div>
@@ -84,15 +116,15 @@ const CreatePost = () => {
             </button>
           </div>
 
-          <input 
-            type="file" 
+          <input
+            type="file"
             accept="image/*"
-            hidden 
-            ref={imgRef} 
-            onChange={handleImgChange} 
+            hidden
+            ref={imgRef}
+            onChange={handleImgChange}
           />
 
-          <button 
+          <button
             className="btn bg-blue-500 hover:bg-blue-600 text-white rounded-full px-6 font-semibold transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
             disabled={!text.trim() && !img}
           >
@@ -103,6 +135,7 @@ const CreatePost = () => {
             )}
           </button>
         </div>
+        {isError && <p className="text-red-500">{error.message}</p>}
       </form>
     </div>
   );
