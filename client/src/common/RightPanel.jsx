@@ -1,10 +1,32 @@
 import { Link } from "react-router-dom";
 import RightPanelSkeleton from "../components/skeletons/RightPanelSkeleton";
-import { USERS_FOR_RIGHT_PANEL } from "../utils/db/dummy";
+import { useQuery } from "@tanstack/react-query";
 
 const RightPanel = () => {
-  const isLoading = false;
-  
+  const { data: suggestedUser, isLoading } = useQuery({
+    queryKey: ["suggestedUser"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/users/suggested");
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Something went wrong");
+        }
+        return data;
+      } catch (error) {
+        throw new Error(error.message);
+      }
+    },
+  });
+
+  if (suggestedUser?.length === 0)
+    return (
+      <div>
+        <h2 className="text-xl font-bold text-white/90 text-center">
+          No suggestions found.
+        </h2>
+      </div>
+    );
 
   return (
     <div className="hidden lg:block my-6 mx-4">
@@ -24,7 +46,7 @@ const RightPanel = () => {
           )}
 
           {!isLoading &&
-            USERS_FOR_RIGHT_PANEL?.map((user) => (
+            suggestedUser?.map((user) => (
               <Link
                 to={`/profile/${user.username}`}
                 className="flex items-center justify-between p-4 hover:bg-gray-800/30 transition-colors duration-300"
@@ -33,10 +55,10 @@ const RightPanel = () => {
                 <div className="flex items-center gap-3">
                   <div className="avatar">
                     <div className="w-10 h-10 rounded-full ring-2 ring-blue-500/50 ring-offset-2 ring-offset-gray-900">
-                      <img 
+                      <img
                         src={user.profileImg || "/avatar-placeholder.png"}
                         className="object-cover"
-                        alt={user.fullName} 
+                        alt={user.fullName}
                       />
                     </div>
                   </div>
