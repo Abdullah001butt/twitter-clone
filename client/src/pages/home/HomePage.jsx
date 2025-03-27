@@ -15,7 +15,11 @@ const HomePage = () => {
           }
           onClick={() => setFeedType("forYou")}
         >
-          <span className={`font-medium text-lg ${feedType === "forYou" ? "text-white" : "text-gray-400"}`}>
+          <span
+            className={`font-medium text-lg ${
+              feedType === "forYou" ? "text-white" : "text-gray-400"
+            }`}
+          >
             For you
           </span>
           {feedType === "forYou" && (
@@ -26,7 +30,11 @@ const HomePage = () => {
           className="flex justify-center flex-1 p-4 hover:bg-gray-800/40 transition-all duration-300 cursor-pointer relative"
           onClick={() => setFeedType("following")}
         >
-          <span className={`font-medium text-lg ${feedType === "following" ? "text-white" : "text-gray-400"}`}>
+          <span
+            className={`font-medium text-lg ${
+              feedType === "following" ? "text-white" : "text-gray-400"
+            }`}
+          >
             Following
           </span>
           {feedType === "following" && (
@@ -42,7 +50,7 @@ const HomePage = () => {
 
       {/* POSTS */}
       <div className="transition-all duration-300">
-        <Posts />
+        <Posts feedType={feedType} />
       </div>
     </div>
   );
