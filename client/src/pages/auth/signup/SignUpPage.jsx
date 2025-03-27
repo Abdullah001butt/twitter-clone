@@ -5,6 +5,8 @@ import { MdOutlineMail } from "react-icons/md";
 import { FaUser } from "react-icons/fa";
 import { MdPassword } from "react-icons/md";
 import { MdDriveFileRenameOutline } from "react-icons/md";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
 const SignUpPage = () => {
   const [formData, setFormData] = useState({
@@ -14,9 +16,48 @@ const SignUpPage = () => {
     password: "",
   });
 
+  const queryClient = useQueryClient();
+
+  const { mutate, isError, isPending, error } = useMutation({
+    mutationFn: async ({ email, username, fullName, password }) => {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, username, fullName, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || data.error || "Something went wrong");
+      }
+
+      return data;
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+    onSuccess: (data) => {
+      // toast.success("Account created successfully!");
+
+      queryClient.invalidateQueries({
+        queryKey: ["authUser"],
+      });
+
+      setFormData({
+        email: "",
+        username: "",
+        fullName: "",
+        password: "",
+      });
+    },
+  });
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log(formData);
+    mutate(formData);
   };
 
   const handleInputChange = (e) => {
@@ -34,11 +75,11 @@ const SignUpPage = () => {
       <div className="flex-1 flex flex-col justify-center items-center px-8 py-12">
         <div className="w-full max-w-md">
           <XSvg className="w-24 lg:hidden fill-white mb-8 mx-auto" />
-          
+
           <h1 className="text-5xl font-extrabold text-white mb-8 tracking-tight">
             Join <span className="text-blue-500">Today</span>
           </h1>
-          
+
           <form className="space-y-6" onSubmit={handleSubmit}>
             <label className="input input-bordered flex items-center gap-3 bg-gray-800 border-gray-700 hover:border-blue-500 transition-colors duration-300">
               <MdOutlineMail className="text-gray-400 text-xl" />
@@ -91,8 +132,13 @@ const SignUpPage = () => {
             </label>
 
             <button className="btn w-full bg-blue-500 hover:bg-blue-600 text-white rounded-full py-3 font-semibold text-lg transition-colors duration-300">
-              Create account
+              {isPending ? (
+                <span className="loading loading-spinner loading-md"></span>
+              ) : (
+                "Sign Up"
+              )}
             </button>
+            {isError && <p className="text-red-500">{error.message}</p>}
           </form>
 
           <div className="mt-8 text-center">

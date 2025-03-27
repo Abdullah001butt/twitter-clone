@@ -4,13 +4,37 @@ import { IoNotifications } from "react-icons/io5";
 import { FaUser } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { BiLogOut } from "react-icons/bi";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
 const Sidebar = () => {
-  const data = {
-    fullName: "John Doe",
-    username: "johndoe",
-    profileImg: "/avatars/boy1.png",
-  };
+  const queryClient = useQueryClient();
+  const { mutate: logoutMutation } = useMutation({
+    mutationFn: async () => {
+      try {
+        const res = await fetch("/api/auth/logout", {
+          method: "POST",
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || data.error || "Something went wrong");
+        }
+      } catch (error) {
+        throw new Error(error);
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["authUser"],
+      });
+      // toast.success("Logged out successfully");
+    },
+  });
+
+  const { data: authUser } = useQuery({ queryKey: ["authUser"] });
 
   return (
     <div className="md:flex-[2_2_0] w-18 max-w-52">
@@ -48,7 +72,7 @@ const Sidebar = () => {
 
           <li className="flex justify-center md:justify-start px-4">
             <Link
-              to={`/profile/${data?.username}`}
+              to={`/profile/${authUser?.username}`}
               className="flex gap-4 items-center hover:bg-blue-500/10 transition-all rounded-full duration-300 py-3 pl-3 pr-6 w-full group"
             >
               <FaUser className="w-6 h-6 text-gray-200 group-hover:text-blue-500 transition-colors" />
@@ -60,15 +84,15 @@ const Sidebar = () => {
         </ul>
 
         {/* User Profile Section */}
-        {data && (
+        {authUser && (
           <Link
-            to={`/profile/${data.username}`}
+            to={`/profile/${authUser.username}`}
             className="mt-auto mb-6 mx-4 flex items-center gap-3 transition-all duration-300 hover:bg-blue-500/10 p-3 rounded-full group"
           >
             <div className="avatar">
               <div className="w-10 h-10 rounded-full ring-2 ring-blue-500 ring-offset-2 ring-offset-black">
                 <img
-                  src={data?.profileImg || "/avatar-placeholder.png"}
+                  src={authUser?.profileImg || "/avatar-placeholder.png"}
                   alt="profile"
                   className="object-cover"
                 />
@@ -77,11 +101,17 @@ const Sidebar = () => {
             <div className="hidden md:flex justify-between items-center flex-1">
               <div className="flex flex-col">
                 <p className="text-white font-bold text-sm group-hover:text-blue-500 transition-colors">
-                  {data?.fullName}
+                  {authUser?.fullName}
                 </p>
-                <p className="text-gray-500 text-sm">@{data?.username}</p>
+                <p className="text-gray-500 text-sm">@{authUser?.username}</p>
               </div>
-              <BiLogOut className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+              <BiLogOut
+                className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors"
+                onClick={(e) => {
+                  e.preventDefault();
+                  logoutMutation();
+                }}
+              />
             </div>
           </Link>
         )}
